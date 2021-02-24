@@ -1,10 +1,14 @@
 package com.cavetale.warp;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.BaseComponent;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -24,12 +28,22 @@ public final class WarpCommand implements TabExecutor {
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String alias, final String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.AQUA + "There are "
-                               + plugin.warps.count() + " warps: "
-                               + plugin.warps.keys().stream()
-                               .sorted()
-                               .map(s -> ChatColor.WHITE + s)
-                               .collect(Collectors.joining(ChatColor.GRAY + ", ")));
+            ComponentBuilder cb = new ComponentBuilder("There are " + plugin.warps.count() + " warps: ").color(ChatColor.AQUA);
+            List<String> keys = new ArrayList<>(plugin.warps.keys());
+            Collections.sort(keys);
+            boolean comma = false;
+            for (String key : plugin.warps.keys()) {
+                if (comma) {
+                    cb.append(", ").color(ChatColor.GRAY);
+                } else {
+                    comma = true;
+                }
+                cb.append(key).color(ChatColor.WHITE);
+                cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/warp " + key));
+                BaseComponent[] tooltip = new ComponentBuilder("/warp " + key).color(ChatColor.AQUA).create();
+                cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
+            }
+            sender.sendMessage(cb.create());
             return true;
         }
         if (args.length > 1) return false;

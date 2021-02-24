@@ -21,6 +21,11 @@ public final class SetWarpCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String alias, final String[] args) {
+        if (args.length == 1 && args[0].equals("-reload")) {
+            plugin.loadWarps();
+            sender.sendMessage("Warps reloaded");
+            return true;
+        }
         if (!(sender instanceof Player)) return false;
         Player player = (Player) sender;
         if (args.length == 0) return false;

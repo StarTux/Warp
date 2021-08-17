@@ -1,5 +1,7 @@
 package com.cavetale.warp;
 
+import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
+import com.cavetale.core.event.player.PluginPlayerEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,6 +29,7 @@ public final class WarpCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String alias, final String[] args) {
+        Player player = sender instanceof Player ? (Player) sender : null;
         if (args.length == 0) {
             ComponentBuilder cb = new ComponentBuilder("There are " + plugin.warps.count() + " warps: ").color(ChatColor.AQUA);
             List<String> keys = new ArrayList<>(plugin.warps.keys());
@@ -44,11 +47,13 @@ public final class WarpCommand implements TabExecutor {
                 cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
             }
             sender.sendMessage(cb.create());
+            if (player != null) {
+                PluginPlayerEvent.Name.LIST_WARPS.call(plugin, player);
+            }
             return true;
         }
         if (args.length > 1) return false;
-        if (!(sender instanceof Player)) return false;
-        Player player = (Player) sender;
+        if (player == null) return false;
         String name = args[0];
         Warp warp = plugin.warps.get(name);
         if (warp == null) {
@@ -60,8 +65,15 @@ public final class WarpCommand implements TabExecutor {
             player.sendMessage(ChatColor.RED + "Warp not found: " + name);
             return true;
         }
-        player.teleport(loc, PlayerTeleportEvent.TeleportCause.COMMAND);
-        player.sendMessage(ChatColor.AQUA + "Warping: " + ChatColor.RESET + name);
+        boolean allowed = PluginPlayerEvent.Name.USE_WARP.cancellable(plugin, player)
+            .detail(Detail.NAME, name)
+            .detail(Detail.LOCATION, loc)
+            .call();
+        if (!allowed) return true;
+        loc.getWorld().getChunkAtAsync(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, chunk -> {
+                player.teleport(loc, PlayerTeleportEvent.TeleportCause.COMMAND);
+                player.sendMessage(ChatColor.AQUA + "Warping: " + ChatColor.RESET + name);
+            });
         return true;
     }
 

@@ -42,7 +42,7 @@ public final class WarpCommand implements TabExecutor {
                     comma = true;
                 }
                 cb.append(key).color(ChatColor.WHITE);
-                cb.event(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/warp " + key));
+                cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/warp " + key));
                 BaseComponent[] tooltip = new ComponentBuilder("/warp " + key).color(ChatColor.AQUA).create();
                 cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip));
             }

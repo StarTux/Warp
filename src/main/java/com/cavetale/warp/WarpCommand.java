@@ -1,5 +1,7 @@
 package com.cavetale.warp;
 
+import com.cavetale.core.command.RemotePlayer;
+import com.cavetale.core.connect.Connect;
 import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
 import com.cavetale.core.event.player.PluginPlayerEvent;
 import java.util.ArrayList;
@@ -31,18 +33,27 @@ public final class WarpCommand implements TabExecutor {
     }
 
     @Override
-    public boolean onCommand(final CommandSender sender, final Command command, final String alias, final String[] args) {
+    public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
         if (args.length == 0) {
             listWarps(sender);
             return true;
         }
-        Player player = sender instanceof Player ? (Player) sender : null;
-        if (player == null) {
-            sender.sendMessage("[warp:warp] Player expected");
-            return true;
-        }
+        if (sender instanceof Player player) return onCommand(player, label, args);
+        if (sender instanceof RemotePlayer player) return onCommand(player, label, args);
+        sender.sendMessage("[warp:warp] Player expected");
+        return true;
+    }
+
+    public boolean onCommand(final Player player, final String label, final String[] args) {
         if (args.length > 1) return false;
         String name = args[0];
+        if (name.contains(":")) {
+            String[] toks = name.split(":", 2);
+            String targetServer = toks[0];
+            String warpName = toks[1];
+            Connect.get().dispatchRemoteCommand(player, label + " " + warpName, targetServer);
+            return true;
+        }
         Warp warp = plugin.warps.get(name);
         if (warp == null) {
             player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
@@ -61,6 +72,31 @@ public final class WarpCommand implements TabExecutor {
         loc.getWorld().getChunkAtAsync(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, (Consumer<Chunk>) chunk -> {
                 player.teleport(loc, PlayerTeleportEvent.TeleportCause.COMMAND);
                 player.sendMessage(Component.text("Warping to " + name, NamedTextColor.GREEN));
+            });
+        return true;
+    }
+
+    public boolean onCommand(final RemotePlayer player, final String label, final String[] args) {
+        if (args.length > 1) return false;
+        String name = args[0];
+        Warp warp = plugin.warps.get(name);
+        if (warp == null) {
+            player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
+            return true;
+        }
+        Location loc = warp.toLocation();
+        if (loc == null) {
+            player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
+            return true;
+        }
+        player.sendMessage(Component.text("Warping to " + name, NamedTextColor.GREEN));
+        loc.getWorld().getChunkAtAsync(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, (Consumer<Chunk>) chunk -> {
+                chunk.addPluginChunkTicket(plugin);
+                player.bring(plugin, evt -> {
+                        chunk.removePluginChunkTicket(plugin);
+                        if (evt == null) return;
+                        evt.setSpawnLocation(loc);
+                    });
             });
         return true;
     }

@@ -1,9 +1,10 @@
 package com.cavetale.warp;
 
+import com.cavetale.core.util.Json;
+import java.io.File;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class WarpPlugin extends JavaPlugin {
-    private final Json json = new Json(this);
     Warps warps;
     private WarpCommand warpCommand;
     private SetWarpCommand setWarpCommand;
@@ -20,11 +21,11 @@ public final class WarpPlugin extends JavaPlugin {
     }
 
     void loadWarps() {
-        warps = json.load("warps.json", Warps.class, Warps::new);
+        warps = Json.load(new File(getDataFolder(), "warps.json"), Warps.class, Warps::new);
     }
 
     void saveWarps() {
         if (warps == null) return;
-        json.save("warps.json", warps, true);
+        Json.save(new File(getDataFolder(), "warps.json"), warps, true);
     }
 }

@@ -84,19 +84,15 @@ public final class WarpCommand implements TabExecutor {
             player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
             return true;
         }
-        Location loc = warp.toLocation();
-        if (loc == null) {
+        Location location = warp.toLocation();
+        if (location == null) {
             player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
             return true;
         }
         player.sendMessage(Component.text("Warping to " + name, NamedTextColor.GREEN));
-        loc.getWorld().getChunkAtAsync(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, (Consumer<Chunk>) chunk -> {
+        location.getWorld().getChunkAtAsync(location.getBlockX() >> 4, location.getBlockZ() >> 4, (Consumer<Chunk>) chunk -> {
                 chunk.addPluginChunkTicket(plugin);
-                player.bring(plugin, evt -> {
-                        chunk.removePluginChunkTicket(plugin);
-                        if (evt == null) return;
-                        evt.setSpawnLocation(loc);
-                    });
+                player.bring(plugin, location, player2 -> { });
             });
         return true;
     }

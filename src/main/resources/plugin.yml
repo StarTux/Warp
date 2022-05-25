@@ -8,25 +8,22 @@ description: Warp Plugin
 author: StarTux
 website: https://cavetale.com
 
-depend: [Core]
+depend: [Core, SQL, Mytems]
 softdepend: []
 
 commands:
 
   warp:
-    aliases: []
+    aliases: [warps]
     description: Use Warps
     permission: warp.warp
-    usage: |-
-      /warp - List waps
-      /warp <name> - Use warp
+    usage: /warp
 
-  setwarp:
-    aliases: []
-    description: Warp Command
-    permission: warp.setwarp
-    usage: |-
-      /warp
+  warpadmin:
+    aliases: [warpadm]
+    description: Admin Command
+    permission: warp.admin
+    usage: /warpadmin
 
 permissions:
 
@@ -34,6 +31,6 @@ permissions:
     description: Use /warp
     default: op
 
-  warp.setwarp:
-    description: Use /setwarp
+  warp.admin:
+    description: Use /warpadmin
     default: op

@@ -1,123 +1,122 @@
 package com.cavetale.warp;
 
+import com.cavetale.core.command.AbstractCommand;
+import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.RemotePlayer;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
 import com.cavetale.core.event.player.PluginPlayerEvent;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.Consumer;
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.ComponentLike;
-import net.kyori.adventure.text.JoinConfiguration;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Chunk;
 import org.bukkit.Location;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerTeleportEvent;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.newline;
+import static net.kyori.adventure.text.Component.space;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.noSeparators;
+import static net.kyori.adventure.text.JoinConfiguration.separator;
+import static net.kyori.adventure.text.event.ClickEvent.runCommand;
+import static net.kyori.adventure.text.event.HoverEvent.showText;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
+import static net.kyori.adventure.text.format.TextDecoration.*;
 
-@RequiredArgsConstructor
-public final class WarpCommand implements TabExecutor {
-    private final WarpPlugin plugin;
-
-    public WarpCommand enable() {
-        plugin.getCommand("warp").setExecutor(this);
-        return this;
+public final class WarpCommand extends AbstractCommand<WarpPlugin> {
+    protected WarpCommand(final WarpPlugin plugin) {
+        super(plugin, "warp");
     }
 
     @Override
-    public boolean onCommand(final CommandSender sender, final Command command, final String label, final String[] args) {
+    protected void onEnable() {
+        rootNode.arguments("[name]")
+            .description("Use a warp")
+            .completers(CommandArgCompleter.supplyList(() -> plugin.warps.keys()))
+            .remotePlayerCaller(this::warp);
+    }
+
+    private boolean warp(RemotePlayer player, String[] args) {
         if (args.length == 0) {
-            listWarps(sender);
+            listWarps(player);
             return true;
         }
-        if (sender instanceof Player player) return onCommand(player, label, args);
-        if (sender instanceof RemotePlayer player) return onCommand(player, label, args);
-        sender.sendMessage("[warp:warp] Player expected");
+        final String name = String.join(" ", args);
+        plugin.database.find(SQLWarp.class)
+            .eq("name", name)
+            .findUniqueAsync(warp -> warp2(player, name, warp));
         return true;
     }
 
-    public boolean onCommand(final Player player, final String label, final String[] args) {
-        if (args.length > 1) return false;
-        String name = args[0];
-        if (name.contains(":")) {
-            String[] toks = name.split(":", 2);
-            String targetServer = toks[0];
-            String warpName = toks[1];
-            Connect.get().dispatchRemoteCommand(player, label + " " + warpName, targetServer);
-            return true;
+    private void warp2(RemotePlayer player, String name, SQLWarp warp) {
+        if (warp == null || !warp.hasPermission(player)) {
+            player.sendMessage(text("Warp not found: " + name, RED));
+            return;
         }
-        Warp warp = plugin.warps.get(name);
-        if (warp == null) {
-            player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
-            return true;
+        if (player.isPlayer() && !warp.isOnThisServer()) {
+            Connect.get().dispatchRemoteCommand(player.getPlayer(), "warp " + name, warp.getServer());
+            return;
         }
-        Location loc = warp.toLocation();
-        if (loc == null) {
-            player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
-            return true;
-        }
-        boolean allowed = PluginPlayerEvent.Name.USE_WARP.cancellable(plugin, player)
-            .detail(Detail.NAME, name)
-            .detail(Detail.LOCATION, loc)
-            .call();
-        if (!allowed) return true;
-        loc.getWorld().getChunkAtAsync(loc.getBlockX() >> 4, loc.getBlockZ() >> 4, (Consumer<Chunk>) chunk -> {
-                player.teleport(loc, PlayerTeleportEvent.TeleportCause.COMMAND);
-                player.sendMessage(Component.text("Warping to " + name, NamedTextColor.GREEN));
-            });
-        return true;
+        warp.toLocation(location -> warp3(player, warp, location));
     }
 
-    public boolean onCommand(final RemotePlayer player, final String label, final String[] args) {
-        if (args.length > 1) return false;
-        String name = args[0];
-        Warp warp = plugin.warps.get(name);
-        if (warp == null) {
-            player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
-            return true;
-        }
-        Location location = warp.toLocation();
+    private void warp3(RemotePlayer player, SQLWarp warp, Location location) {
         if (location == null) {
-            player.sendMessage(Component.text("Warp not found: " + name, NamedTextColor.RED));
-            return true;
+            player.sendMessage(text("Warp not found: " + warp.getName(), RED));
+            return;
         }
-        player.sendMessage(Component.text("Warping to " + name, NamedTextColor.GREEN));
-        location.getWorld().getChunkAtAsync(location.getBlockX() >> 4, location.getBlockZ() >> 4, (Consumer<Chunk>) chunk -> {
-                chunk.addPluginChunkTicket(plugin);
-                player.bring(plugin, location, player2 -> { });
+        player.sendMessage(Component.text("Warping to " + warp.getName(), GREEN));
+        player.bring(plugin, location, player2 -> {
+                if (player2 == null) return;
+                PluginPlayerEvent.Name.USE_WARP.make(plugin, player2)
+                    .detail(Detail.NAME, warp.getName())
+                    .detail(Detail.LOCATION, location)
+                    .callEvent();
             });
-        return true;
     }
 
     public void listWarps(CommandSender sender) {
+        plugin.database.find(SQLWarp.class).findListAsync(list -> listWarps2(sender, list));
+    }
+
+    private void listWarps2(CommandSender sender, List<SQLWarp> rows) {
+        plugin.warps = new Warps(rows);
         List<String> keys = new ArrayList<>(plugin.warps.keys());
         Collections.sort(keys);
-        List<ComponentLike> components = new ArrayList<>();
-        for (String key : plugin.warps.keys()) {
-            Component tooltip = Component.text("/warp " + key, NamedTextColor.GREEN);
-            components.add(Component.text().color(NamedTextColor.GREEN).content(key)
-                           .clickEvent(ClickEvent.runCommand("/warp " + key))
-                           .hoverEvent(HoverEvent.showText(tooltip)));
+        int count = 0;
+        Map<String, List<Component>> categoryMap = new HashMap<>();
+        for (String key : keys) {
+            SQLWarp warp = plugin.warps.get(key);
+            if (!warp.hasPermission(sender)) continue;
+            Component component = join(noSeparators(), text("[", WHITE), warp.parseTitle(), text("]", WHITE))
+                .clickEvent(runCommand("/warp " + key))
+                .hoverEvent(showText(join(separator(newline()), warp.getTooltip())));
+            String category = warp.getCategory();
+            categoryMap.computeIfAbsent(category, c -> new ArrayList<>()).add(component);
+            count += 1;
         }
-        Component prefix = Component.text("There are " + plugin.warps.count() + " warps: ", NamedTextColor.WHITE);
-        Component separator = Component.text(", ", NamedTextColor.GRAY);
-        sender.sendMessage(Component.join(JoinConfiguration.builder().prefix(prefix).separator(separator).build(), components));
+        if (count == 0) {
+            sender.sendMessage(text("There are no warps", RED));
+            return;
+        } else if (count == 1) {
+            sender.sendMessage(text("There is one warp: ", WHITE));
+        } else {
+            sender.sendMessage(text("There are " + count + " warps: ", WHITE));
+        }
+        List<String> categories = new ArrayList<>(categoryMap.keySet());
+        Collections.sort(categories);
+        for (String category : categories) {
+            List<Component> components = categoryMap.get(category);
+            if (!category.isEmpty()) {
+                sender.sendMessage(text(category + " (" + components.size() + ")", AQUA, ITALIC));
+            }
+            sender.sendMessage(join(separator(space()), components));
+        }
         if (sender instanceof Player) {
             PluginPlayerEvent.Name.LIST_WARPS.call(plugin, (Player) sender);
         }
-    }
-
-    @Override
-    public List<String> onTabComplete(final CommandSender sender, final Command command, final String alias, final String[] args) {
-        if (args.length == 1) return plugin.warps.complete(args[0]);
-        return Collections.emptyList();
     }
 }

@@ -2,39 +2,36 @@ package com.cavetale.warp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
+/**
+ * Just a cache!
+ */
 public final class Warps {
-    private Map<String, Warp> warps = new HashMap<>();;
+    private final Map<String, SQLWarp> warps = new HashMap<>();
+
+    public Warps() { }
+
+    public Warps(final List<SQLWarp> list) {
+        for (SQLWarp it : list) {
+            warps.put(it.getName(), it);
+        }
+    }
 
     public int count() {
         return warps.size();
     }
 
-    public Warp get(String name) {
+    public SQLWarp get(String name) {
         return warps.get(name);
     }
 
-    public void set(String name, Warp warp) {
-        warps.put(name, warp);
+    public List<String> keys() {
+        return new ArrayList<>(warps.keySet());
     }
 
-    public Set<String> keys() {
-        return new HashSet<>(warps.keySet());
-    }
-
-    public List<Warp> all() {
+    public List<SQLWarp> all() {
         return new ArrayList<>(warps.values());
-    }
-
-    public List<String> complete(String arg) {
-        String lower = arg.toLowerCase();
-        return keys().stream()
-            .filter(k -> k.toLowerCase().startsWith(lower))
-            .collect(Collectors.toList());
     }
 }

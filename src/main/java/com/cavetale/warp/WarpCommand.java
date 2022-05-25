@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.newline;
@@ -78,11 +77,11 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
             });
     }
 
-    public void listWarps(CommandSender sender) {
+    public void listWarps(RemotePlayer sender) {
         plugin.database.find(SQLWarp.class).findListAsync(list -> listWarps2(sender, list));
     }
 
-    private void listWarps2(CommandSender sender, List<SQLWarp> rows) {
+    private void listWarps2(RemotePlayer sender, List<SQLWarp> rows) {
         plugin.warps = new Warps(rows);
         List<String> keys = new ArrayList<>(plugin.warps.keys());
         Collections.sort(keys);
@@ -115,8 +114,8 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
             }
             sender.sendMessage(join(separator(space()), components));
         }
-        if (sender instanceof Player) {
-            PluginPlayerEvent.Name.LIST_WARPS.call(plugin, (Player) sender);
+        if (sender.isPlayer()) {
+            PluginPlayerEvent.Name.LIST_WARPS.call(plugin, sender.getPlayer());
         }
     }
 }

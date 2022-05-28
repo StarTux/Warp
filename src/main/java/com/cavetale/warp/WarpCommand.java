@@ -1,7 +1,6 @@
 package com.cavetale.warp;
 
 import com.cavetale.core.command.AbstractCommand;
-import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.RemotePlayer;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
@@ -33,7 +32,16 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
     protected void onEnable() {
         rootNode.arguments("[name]")
             .description("Use a warp")
-            .completers(CommandArgCompleter.supplyList(() -> plugin.warps.keys()))
+            .completers((context, node, arg) -> {
+                    List<String> result = new ArrayList<>();
+                    String lower = arg.toLowerCase();
+                    for (String key : plugin.warps.keys()) {
+                        if (key.toLowerCase().contains(lower)) {
+                            result.add(key);
+                        }
+                    }
+                    return result;
+                })
             .remotePlayerCaller(this::warp);
     }
 

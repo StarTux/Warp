@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
-import org.bukkit.entity.Player;
 import static net.kyori.adventure.text.Component.join;
 import static net.kyori.adventure.text.Component.newline;
 import static net.kyori.adventure.text.Component.space;

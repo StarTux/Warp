@@ -1,8 +1,10 @@
 package com.cavetale.warp;
 
 import com.cavetale.core.connect.Connect;
+import com.cavetale.core.connect.ServerCategory;
 import com.cavetale.core.worlds.Worlds;
 import com.cavetale.mytems.Mytems;
+import com.cavetale.mytems.util.Text;
 import com.winthier.sql.SQLRow;
 import java.util.ArrayList;
 import java.util.Date;
@@ -81,8 +83,11 @@ public final class SQLWarp implements SQLRow {
     public SQLWarp(final String name, final Location location) {
         this.name = name;
         setLocation(location);
-        this.category = "";
+        this.category = Text.toCamelCase(ServerCategory.current(), " ");
         this.permission = "";
+        this.title = "";
+        this.description = "";
+        this.icon = "";
         this.created = new Date();
         this.updated = new Date();
     }

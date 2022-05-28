@@ -31,7 +31,8 @@ public final class WarpAdminCommand extends AbstractCommand<WarpPlugin> {
     private boolean set(Player player, String[] args) {
         if (args.length == 0) return false;
         String name = String.join(" ", args);
-        plugin.database.insert(new SQLWarp(name, player.getLocation()));
+        plugin.database.save(new SQLWarp(name, player.getLocation()),
+                             "server", "world", "x", "y", "z", "pitch", "yaw", "updated");
         player.sendMessage(text("Warp created: " + name, GREEN));
         return true;
     }

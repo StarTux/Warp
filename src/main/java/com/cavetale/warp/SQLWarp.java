@@ -4,7 +4,6 @@ import com.cavetale.core.connect.Connect;
 import com.cavetale.core.connect.ServerCategory;
 import com.cavetale.core.worlds.Worlds;
 import com.cavetale.mytems.Mytems;
-import com.cavetale.mytems.util.Text;
 import com.winthier.sql.SQLRow;
 import java.util.ArrayList;
 import java.util.Date;
@@ -22,6 +21,7 @@ import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permissible;
 import static com.cavetale.core.font.Unicode.tiny;
+import static com.cavetale.core.util.CamelCase.toCamelCase;
 import static com.cavetale.mytems.util.Text.wrapLore;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
@@ -83,7 +83,7 @@ public final class SQLWarp implements SQLRow {
     public SQLWarp(final String name, final Location location) {
         this.name = name;
         setLocation(location);
-        this.category = Text.toCamelCase(ServerCategory.current(), " ");
+        this.category = toCamelCase(" ", ServerCategory.current());
         this.permission = "";
         this.title = "";
         this.description = "";

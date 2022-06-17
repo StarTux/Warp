@@ -36,6 +36,9 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
                     List<String> result = new ArrayList<>();
                     String lower = arg.toLowerCase();
                     for (String key : plugin.warps.keys()) {
+                        SQLWarp warp = plugin.warps.get(key);
+                        if (warp.isHidden()) continue;
+                        if (!warp.hasPermission(context.sender)) continue;
                         if (key.toLowerCase().contains(lower)) {
                             result.add(key);
                         }
@@ -96,6 +99,7 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
         Map<String, List<Component>> categoryMap = new HashMap<>();
         for (String key : keys) {
             SQLWarp warp = plugin.warps.get(key);
+            if (warp.isHidden()) continue;
             if (!warp.hasPermission(sender)) continue;
             Component component = join(noSeparators(), text("[", WHITE), warp.parseTitle(), text("]", WHITE))
                 .clickEvent(runCommand("/warp " + key))

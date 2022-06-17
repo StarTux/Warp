@@ -4,14 +4,13 @@ import com.cavetale.core.connect.Connect;
 import com.cavetale.core.connect.ServerCategory;
 import com.cavetale.core.worlds.Worlds;
 import com.cavetale.mytems.Mytems;
+import com.winthier.sql.SQLRow.Name;
+import com.winthier.sql.SQLRow.NotNull;
 import com.winthier.sql.SQLRow;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.function.Consumer;
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.Table;
 import lombok.Data;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -28,55 +27,25 @@ import static net.kyori.adventure.text.format.NamedTextColor.*;
 import static net.kyori.adventure.text.format.TextDecoration.*;
 import static net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.gson;
 
-@Data @Table(name = "warps")
+@Data @NotNull @Name("warps")
 public final class SQLWarp implements SQLRow {
-    @Id
-    private Integer id;
-
-    @Column(nullable = false, length = 40, unique = true)
-    private String name;
-
-    @Column(nullable = false, length = 40)
-    private String server;
-
-    @Column(nullable = false)
-    private String world;
-
-    @Column(nullable = false)
+    @Id private Integer id;
+    @VarChar(40) @Unique private String name;
+    @VarChar(40) private String server;
+    @VarChar(40) private String world;
     private double x;
-
-    @Column(nullable = false)
     private double y;
-
-    @Column(nullable = false)
     private double z;
-
-    @Column(nullable = false)
-    private float pitch;
-
-    @Column(nullable = false)
-    private float yaw;
-
-    @Column(nullable = false)
-    private String category;
-
-    @Column(nullable = false)
-    private String permission;
-
-    @Column(nullable = false)
-    private String title; // component
-
-    @Column(nullable = false)
-    private String description;
-
-    @Column(nullable = false)
-    private String icon;
-
-    @Column(nullable = false)
-    private Date created;
-
-    @Column(nullable = false)
-    private Date updated;
+    @Default("0") private float pitch;
+    @Default("0") private float yaw;
+    @VarChar(255) @Default("'Survival'") private String category;
+    @VarChar(255) @Default("''") private String permission;
+    @Text @Default("''") private String title; // component
+    @VarChar(255) @Default("''") private String description;
+    @VarChar(255) @Default("''") private String icon;
+    @Default("0") private boolean hidden;
+    @Default("NOW()") private Date created;
+    @Default("NOW()") private Date updated;
 
     public SQLWarp() { }
 

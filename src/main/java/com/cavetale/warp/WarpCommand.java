@@ -61,6 +61,7 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
         }
         if (player.isPlayer() && !warp.isOnThisServer()) {
             Connect.get().dispatchRemoteCommand(player.getPlayer(), "warp " + args[0], warp.getServer());
+            return true;
         }
         warp.toLocation(location -> warp2(player, warp, location));
         return true;

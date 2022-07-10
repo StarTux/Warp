@@ -93,7 +93,7 @@ public final class SQLWarp implements SQLRow {
 
     public Component parseTitle() {
         return title.isEmpty()
-            ? text(name, GREEN)
+            ? text(name, permission != null && !permission.isEmpty() ? RED : GREEN)
             : gson().deserialize(title);
     }
 

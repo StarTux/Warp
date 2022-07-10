@@ -1,6 +1,7 @@
 package com.cavetale.warp;
 
 import com.cavetale.core.command.AbstractCommand;
+import com.cavetale.core.command.CommandWarn;
 import com.cavetale.core.command.RemotePlayer;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
@@ -53,26 +54,19 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
             listWarps(player);
             return true;
         }
-        final String name = String.join(" ", args);
-        plugin.database.find(SQLWarp.class)
-            .eq("name", name)
-            .findUniqueAsync(warp -> warp2(player, name, warp));
+        if (args.length != 1) return false;
+        SQLWarp warp = plugin.warps.get(args[0]);
+        if (warp == null || !warp.hasPermission(player)) {
+            throw new CommandWarn("Warp not found: " + args[0]);
+        }
+        if (player.isPlayer() && !warp.isOnThisServer()) {
+            Connect.get().dispatchRemoteCommand(player.getPlayer(), "warp " + args[0], warp.getServer());
+        }
+        warp.toLocation(location -> warp2(player, warp, location));
         return true;
     }
 
-    private void warp2(RemotePlayer player, String name, SQLWarp warp) {
-        if (warp == null || !warp.hasPermission(player)) {
-            player.sendMessage(text("Warp not found: " + name, RED));
-            return;
-        }
-        if (player.isPlayer() && !warp.isOnThisServer()) {
-            Connect.get().dispatchRemoteCommand(player.getPlayer(), "warp " + name, warp.getServer());
-            return;
-        }
-        warp.toLocation(location -> warp3(player, warp, location));
-    }
-
-    private void warp3(RemotePlayer player, SQLWarp warp, Location location) {
+    private void warp2(RemotePlayer player, SQLWarp warp, Location location) {
         if (location == null) {
             player.sendMessage(text("Warp not found: " + warp.getName(), RED));
             return;
@@ -88,11 +82,6 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
     }
 
     public void listWarps(RemotePlayer sender) {
-        plugin.database.find(SQLWarp.class).findListAsync(list -> listWarps2(sender, list));
-    }
-
-    private void listWarps2(RemotePlayer sender, List<SQLWarp> rows) {
-        plugin.warps = new Warps(rows);
         List<String> keys = new ArrayList<>(plugin.warps.keys());
         Collections.sort(keys);
         int count = 0;

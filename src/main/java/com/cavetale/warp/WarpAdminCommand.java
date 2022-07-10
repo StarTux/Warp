@@ -1,15 +1,15 @@
 package com.cavetale.warp;
 
 import com.cavetale.core.command.AbstractCommand;
-import com.cavetale.core.connect.Connect;
-import com.cavetale.core.util.Json;
-import java.io.File;
-import java.util.Date;
+import com.cavetale.core.command.CommandArgCompleter;
+import com.cavetale.core.command.CommandWarn;
+import java.util.Arrays;
+import java.util.Set;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.Permission;
+import static java.util.stream.Collectors.toList;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
@@ -22,24 +22,69 @@ public final class WarpAdminCommand extends AbstractCommand<WarpPlugin> {
     protected void onEnable() {
         rootNode.addChild("set").arguments("<name>")
             .description("Set a warp")
+            .completers(CommandArgCompleter.supplyList(() -> plugin.getWarps().keys()))
             .playerCaller(this::set);
+        rootNode.addChild("permission").arguments("<name> [permission]")
+            .description("Set warp permission")
+            .completers(CommandArgCompleter.supplyList(() -> plugin.getWarps().keys()),
+                        CommandArgCompleter.supplyList(() -> Bukkit.getPluginManager().getPermissions().stream()
+                                                       .map(Permission::getName)
+                                                       .collect(toList())))
+            .playerCaller(this::permission);
+        rootNode.addChild("category").arguments("<name> <category>")
+            .description("Set warp category")
+            .completers(CommandArgCompleter.supplyList(() -> plugin.getWarps().keys()),
+                        CommandArgCompleter.EMPTY)
+            .senderCaller(this::category);
         rootNode.addChild("delete").arguments("<name>")
-            .description("Delete a warp")
-            .playerCaller(this::delete);
+            .description("Delete warp")
+            .completers(CommandArgCompleter.supplyList(() -> plugin.getWarps().keys()))
+            .senderCaller(this::delete);
     }
 
     private boolean set(Player player, String[] args) {
-        if (args.length == 0) return false;
-        String name = String.join(" ", args);
-        plugin.database.save(new SQLWarp(name, player.getLocation()),
-                             "server", "world", "x", "y", "z", "pitch", "yaw", "updated");
-        player.sendMessage(text("Warp created: " + name, AQUA));
+        if (args.length != 1) return false;
+        String name = args[0];
+        plugin.database.saveAsync(new SQLWarp(name, player.getLocation()),
+                                  Set.of("server", "world", "x", "y", "z", "pitch", "yaw", "updated"),
+                                  r -> {
+                                      plugin.broadcastUpdate();
+                                      player.sendMessage(text("Warp created: " + name, AQUA));
+                                  });
+        return true;
+    }
+
+    private SQLWarp requireWarp(String name) {
+        SQLWarp warp = plugin.warps.get(name);
+        if (warp == null) throw new CommandWarn("Warp not found: " + name);
+        return warp;
+    }
+
+    private boolean permission(CommandSender player, String[] args) {
+        if (args.length > 2) return false;
+        SQLWarp warp = requireWarp(args[0]);
+        warp.setPermission(args.length >= 2 ? args[1] : "");
+        plugin.database.updateAsync(warp, Set.of("permission"), r -> {
+                plugin.broadcastUpdate();
+                player.sendMessage(text("Permission of " + warp.getName() + " updated: " + warp.getPermission(), AQUA));
+            });
+        return true;
+    }
+
+    private boolean category(CommandSender player, String[] args) {
+        if (args.length < 2) return false;
+        SQLWarp warp = requireWarp(args[0]);
+        warp.setCategory(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+        plugin.database.updateAsync(warp, Set.of("category"), r -> {
+                plugin.broadcastUpdate();
+                player.sendMessage(text("Category of " + warp.getName() + " updated: " + warp.getCategory(), AQUA));
+            });
         return true;
     }
 
     private boolean delete(CommandSender sender, String[] args) {
-        if (args.length == 0) return false;
-        String name = String.join(" ", args);
+        if (args.length != 1) return false;
+        String name = args[0];
         plugin.database.find(SQLWarp.class).eq("name", name).deleteAsync(r -> {
                 if (r == 0) {
                     sender.sendMessage(text("Warp not found: " + name, RED));

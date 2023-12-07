@@ -54,13 +54,13 @@ public final class WarpCommand extends AbstractCommand<WarpPlugin> {
             listWarps(player);
             return true;
         }
-        if (args.length != 1) return false;
-        SQLWarp warp = plugin.warps.get(args[0]);
+        final String name = String.join(" ", args);
+        SQLWarp warp = plugin.warps.get(name);
         if (warp == null || !warp.hasPermission(player)) {
-            throw new CommandWarn("Warp not found: " + args[0]);
+            throw new CommandWarn("Warp not found: " + name);
         }
         if (player.isPlayer() && !warp.isOnThisServer()) {
-            Connect.get().dispatchRemoteCommand(player.getPlayer(), "warp " + args[0], warp.getServer());
+            Connect.get().dispatchRemoteCommand(player.getPlayer(), "warp " + name, warp.getServer());
             return true;
         }
         warp.toLocation(location -> warp2(player, warp, location));

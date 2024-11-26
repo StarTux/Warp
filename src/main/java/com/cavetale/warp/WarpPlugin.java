@@ -1,10 +1,10 @@
 package com.cavetale.warp;
 
+import com.cavetale.core.command.RemotePlayer;
 import com.cavetale.core.connect.Connect;
 import com.cavetale.core.event.connect.ConnectMessageEvent;
 import com.winthier.sql.SQLDatabase;
 import lombok.Getter;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -42,12 +42,12 @@ public final class WarpPlugin extends JavaPlugin implements Listener {
                 getLogger().severe("Warp not found: " + message);
                 return;
             }
-            final Player player = getServer().getPlayer(message.getPlayer());
+            final RemotePlayer player = Connect.get().getRemotePlayer(message.getPlayer());
             if (player == null) {
                 getLogger().severe("Player not found: " + message);
                 return;
             }
-            warp.toLocation(player::teleport);
+            warp.toLocation(location -> player.bring(this, location, p -> { }));
             break;
         }
         default:

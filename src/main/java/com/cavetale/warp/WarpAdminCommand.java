@@ -3,6 +3,7 @@ package com.cavetale.warp;
 import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandWarn;
+import com.cavetale.core.connect.Connect;
 import java.util.Arrays;
 import java.util.Set;
 import org.bukkit.Bukkit;
@@ -40,6 +41,11 @@ public final class WarpAdminCommand extends AbstractCommand<WarpPlugin> {
             .description("Delete warp")
             .completers(CommandArgCompleter.supplyList(() -> plugin.getWarps().keys()))
             .senderCaller(this::delete);
+        rootNode.addChild("send").arguments("<player> <warp>")
+            .description("Send a player to a warp")
+            .completers(CommandArgCompleter.ONLINE_PLAYERS,
+                        CommandArgCompleter.supplyList(() -> plugin.getWarps().keys()))
+            .senderCaller(this::send);
     }
 
     private boolean set(Player player, String[] args) {
@@ -92,6 +98,20 @@ public final class WarpAdminCommand extends AbstractCommand<WarpPlugin> {
                     sender.sendMessage(text("Warp deleted: " + name, AQUA));
                 }
             });
+        return true;
+    }
+
+    private boolean send(CommandSender sender, String[] args) {
+        if (args.length != 2) return false;
+        final Player player = CommandArgCompleter.requirePlayer(args[0]);
+        final SQLWarp warp = requireWarp(args[0]);
+        if (!warp.isOnThisServer()) {
+            Connect.get().sendMessage(warp.getServer(), ConnectSendMessage.CHANNEL_NAME, new ConnectSendMessage(player.getUniqueId(), warp.getName()).serialize());
+            sender.sendMessage("Sending player to remote warp: " + player.getName() + " => " + warp.getName() + " (" + warp.getServer() + ")");
+        } else {
+            warp.toLocation(player::teleport);
+            sender.sendMessage("Sending player to local warp: " + player.getName() + " => " + warp.getName());
+        }
         return true;
     }
 }

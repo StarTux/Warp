@@ -104,7 +104,7 @@ public final class WarpAdminCommand extends AbstractCommand<WarpPlugin> {
     private boolean send(CommandSender sender, String[] args) {
         if (args.length != 2) return false;
         final Player player = CommandArgCompleter.requirePlayer(args[0]);
-        final SQLWarp warp = requireWarp(args[0]);
+        final SQLWarp warp = requireWarp(args[1]);
         if (!warp.isOnThisServer()) {
             Connect.get().sendMessage(warp.getServer(), ConnectSendMessage.CHANNEL_NAME, new ConnectSendMessage(player.getUniqueId(), warp.getName()).serialize());
             sender.sendMessage("Sending player to remote warp: " + player.getName() + " => " + warp.getName() + " (" + warp.getServer() + ")");

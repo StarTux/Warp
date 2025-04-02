@@ -96,6 +96,7 @@ public final class WarpAdminCommand extends AbstractCommand<WarpPlugin> {
                     sender.sendMessage(text("Warp not found: " + name, RED));
                 } else {
                     sender.sendMessage(text("Warp deleted: " + name, AQUA));
+                    plugin.broadcastUpdate();
                 }
             });
         return true;
